@@ -5,6 +5,7 @@ import axios from 'axios';
 function CheckoutContent() {
     const [searchParams] = useSearchParams();
     const orderId = searchParams.get('order_id');
+    const isEmbedded = searchParams.get('embedded') === 'true';
 
     const [order, setOrder] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -46,6 +47,13 @@ function CheckoutContent() {
         fetchOrder();
     }, [orderId]);
 
+    // Send messages to parent if embedded
+    const sendMessage = (type, data) => {
+        if (isEmbedded) {
+            window.parent.postMessage({ type, data }, '*');
+        }
+    };
+
     const handlePayment = async (e) => {
         e.preventDefault();
         setPaymentState('processing');
@@ -79,10 +87,11 @@ function CheckoutContent() {
         } catch (err) {
             console.error(err);
             setPaymentState('failed');
-            // For immediate validation errors
+            const errorDesc = err.response?.data?.error?.description || 'Payment creation failed';
             setPaymentResult({
-                error_description: err.response?.data?.error?.description || 'Payment creation failed'
+                error_description: errorDesc
             });
+            sendMessage('payment_failed', { error: errorDesc });
         }
     };
 
@@ -96,12 +105,17 @@ function CheckoutContent() {
                     clearInterval(interval);
                     setPaymentState('success');
                     setPaymentResult(res.data);
+                    sendMessage('payment_success', res.data);
                 } else if (status === 'failed') {
                     clearInterval(interval);
                     setPaymentState('failed');
                     setPaymentResult(res.data);
+                    sendMessage('payment_failed', res.data);
                 }
                 // If 'processing', continue polling
+                // Note: pending -> processing -> success/failed
+                // In Deliverable 2, status starts as 'pending'.
+                // Polling pending is fine.
             } catch (err) {
                 console.error("Polling error", err);
                 clearInterval(interval);

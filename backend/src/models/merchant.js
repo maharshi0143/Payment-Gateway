@@ -25,6 +25,10 @@ const Merchant = sequelize.define('Merchant', {
         type: DataTypes.STRING(64),
         allowNull: false,
     },
+    webhook_secret: {
+        type: DataTypes.STRING(64),
+        allowNull: true,
+    },
     webhook_url: {
         type: DataTypes.TEXT,
         allowNull: true,

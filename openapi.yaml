@@ -1,0 +1,176 @@
+openapi: 3.0.0
+info:
+  title: Payment Gateway API
+  description: API for processing payments, managing orders, and handling refunds using an async architecture.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local Development Server
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+    ApiSecretAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Secret
+
+security:
+  - ApiKeyAuth: []
+    ApiSecretAuth: []
+
+paths:
+  /orders:
+    post:
+      summary: Create a new order
+      description: Creates a payment order to return an `id` used by the client SDK.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - currency
+              properties:
+                amount:
+                  type: integer
+                  description: Amount in smallest currency unit (e.g., paise).
+                  example: 50000
+                currency:
+                  type: string
+                  example: INR
+                receipt:
+                  type: string
+                  example: receipt_123
+      responses:
+        '201':
+          description: Order created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    example: order_xyz123
+                  amount:
+                    type: integer
+
+  /payments:
+    post:
+      summary: Initiate a payment (Async)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - order_id
+                - method
+              properties:
+                order_id:
+                  type: string
+                method:
+                  type: string
+                  enum: [card, upi]
+                card:
+                  type: object
+                  properties:
+                    number: 
+                      type: string
+                    expiry_month:
+                      type: string
+                    expiry_year:
+                      type: string
+                    cvv:
+                      type: string
+                    holder_name:
+                      type: string
+      responses:
+        '201':
+          description: Payment initiated (Pending)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+                    example: pending
+
+  /payments/{id}/refunds:
+    post:
+      summary: Initiate a refund
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Payment ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: integer
+                reason:
+                  type: string
+      responses:
+        '201':
+          description: Refund initiated
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  amount:
+                    type: integer
+                  status:
+                    type: string
+                    example: pending
+
+  /merchants/webhook-url:
+    put:
+      summary: Update Webhook URL
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                webhook_url:
+                  type: string
+                  format: uri
+      responses:
+        '200':
+          description: Updated successfully
+
+  /webhooks/{log_id}/retry:
+    post:
+      summary: Retry a failed webhook
+      parameters:
+        - in: path
+          name: log_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Retry scheduled

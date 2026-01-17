@@ -1,0 +1,13 @@
+{
+    "name": "test-merchant",
+    "version": "1.0.0",
+    "description": "Simple merchant test app for webhook verification",
+    "main": "webhook-receiver.js",
+    "scripts": {
+        "start": "node webhook-receiver.js"
+    },
+    "dependencies": {
+        "express": "^4.18.2",
+        "cors": "^2.8.5"
+    }
+}

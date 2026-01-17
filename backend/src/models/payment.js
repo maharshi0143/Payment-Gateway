@@ -28,7 +28,11 @@ const Payment = sequelize.define('Payment', {
     },
     status: {
         type: DataTypes.STRING(20),
-        defaultValue: 'processing', // "processing", "success", "failed"
+        defaultValue: 'pending', // "pending", "success", "failed"
+    },
+    captured: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false,
     },
     vpa: {
         type: DataTypes.STRING(255),

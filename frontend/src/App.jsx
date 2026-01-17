@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Link, useLocation } f
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Transactions from './pages/Transactions';
+import Webhooks from './pages/Webhooks';
+import ApiDocs from './pages/ApiDocs';
 
 // Simple Auth Context Logic (Simulated for simulate session)
 export const AuthContext = React.createContext(null);
@@ -54,6 +56,29 @@ function Layout({ children }) {
                     }}>
                         Transactions
                     </Link>
+                    <Link to="/dashboard/webhooks" style={{
+                        display: 'block',
+                        padding: '0.75rem 1rem',
+                        marginBottom: '0.5rem',
+                        borderRadius: '0.5rem',
+                        textDecoration: 'none',
+                        color: location.pathname === '/dashboard/webhooks' ? '#4F46E5' : '#4B5563',
+                        background: location.pathname === '/dashboard/webhooks' ? '#EEF2FF' : 'transparent',
+                        fontWeight: location.pathname === '/dashboard/webhooks' ? '600' : '400'
+                    }}>
+                        Webhooks
+                    </Link>
+                    <Link to="/dashboard/docs" style={{
+                        display: 'block',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '0.5rem',
+                        textDecoration: 'none',
+                        color: location.pathname === '/dashboard/docs' ? '#4F46E5' : '#4B5563',
+                        background: location.pathname === '/dashboard/docs' ? '#EEF2FF' : 'transparent',
+                        fontWeight: location.pathname === '/dashboard/docs' ? '600' : '400'
+                    }}>
+                        API Docs
+                    </Link>
                 </nav>
             </aside>
             {/* Main Content */}
@@ -83,6 +108,16 @@ function App() {
                 <Route path="/dashboard/transactions" element={
                     <PrivateRoute>
                         <Transactions />
+                    </PrivateRoute>
+                } />
+                <Route path="/dashboard/webhooks" element={
+                    <PrivateRoute>
+                        <Webhooks />
+                    </PrivateRoute>
+                } />
+                <Route path="/dashboard/docs" element={
+                    <PrivateRoute>
+                        <ApiDocs />
                     </PrivateRoute>
                 } />
             </Routes>

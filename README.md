@@ -1,78 +1,133 @@
 # Payment Gateway
 
-A foundational payment gateway implementation similar to Stripe/Razorpay, featuring Merchant Onboarding (simulated), Order Management, and a Hosted Checkout Page supporting UPI and Card payments.
+A production-ready payment gateway implementation supporting **asynchronous processing**, **webhook delivery**, and a **hosted checkout SDK**. Built with Node.js, React, and PostgreSQL.
 
 ## Features
 
-- **Merchant Dashboard**: View API keys and transaction history.
-- **RESTful API**: Secure endpoints for Order creation and Payment processing.
-- **Hosted Checkout**: Professional UI for customers to complete payments.
-- **Payment Simulation**: Simulates bank processing delays and random success/failure rates.
-- **Production Ready**: Fully Dockerized with Nginx serving frontend applications.
+- **Asynchronous Architecture**: Payment processing and webhook delivery offloaded to background workers using Redis queues.
+- **Webhook System**: Secure event delivery with HMAC-SHA256 signatures and exponential backoff retries.
+- **Hosted Checkout SDK**: Embeddable JavaScript SDK/Iframe for secure payment collection.
+- **Merchant Dashboard**: Comprehensive UI for monitoring transactions, managing webhooks, and ensuring system health.
+- **Idempotency**: Robust handling of duplicate requests using `Idempotency-Key` headers.
+- **Refunds**: Full and partial refund support via API.
 
-## Documentation
+## Repository Structure
 
-- [API Documentation](API.md) - Full list of endpoints and usage.
-- [System Architecture & Schema](SCHEMA.md) - Database design and system components.
-
-## Tech Stack
-
-- **Backend**: Node.js, Express, Sequelize
-- **Database**: PostgreSQL
-- **Frontend**: React, Vite
-- **Deployment**: Docker, Docker Compose, Nginx
+- `backend/`: Node.js Express API + Worker Services
+- `frontend/`: React Dashboard Application
+- `checkout-page/`: Hosted Checkout Page + JS SDK
+- `test-merchant/`: Demo Merchant Application for integration testing
 
 ## Setup & Running
 
-1.  **Clone the repository**.
-2.  **Navigate to the project root**:
-    ```bash
-    cd payment-gateway
-    ```
-3.  **Run with Docker Compose**:
+**Prerequisites**: Docker & Docker Compose
+
+1.  **Start Services**:
     ```bash
     docker-compose up -d --build
     ```
-4.  **Access the applications**:
+    *This starts the API, Worker, Dashboard, Checkout Service, Redis, and PostgreSQL.*
+
+2.  **Access Applications**:
+    - **Dashboard**: [http://localhost:3000](http://localhost:3000) (Login: `test@example.com` / `password`)
     - **API**: [http://localhost:8000](http://localhost:8000)
-    - **Dashboard**: [http://localhost:3000](http://localhost:3000)
-    - **Checkout**: [http://localhost:3001](http://localhost:3001)
+    - **Checkout SDK**: [http://localhost:3001/checkout.js](http://localhost:3001/checkout.js)
+    - **Test Merchant**: [http://localhost:4000](http://localhost:4000)
 
-## Quick Start (Testing)
+## API Documentation
 
-1.  **Login to Dashboard**:
-    - URL: [http://localhost:3000/login](http://localhost:3000/login)
-    - Email: `test@example.com`
-    - Password: `any`
-    - **Note**: Copy your API Key and Secret from the dashboard.
+### Authentication
+All API requests require the following headers:
+- `X-Api-Key`: Your generic public key
+- `X-Api-Secret`: Your secret key (keep this safe!)
 
-2.  **Create an Order** (Use Postman or Curl):
-    ```bash
-    curl -X POST http://localhost:8000/api/v1/orders \
-      -H "Content-Type: application/json" \
-      -H "X-Api-Key: key_test_abc123" \
-      -H "X-Api-Secret: secret_test_xyz789" \
-      -d '{"amount": 50000, "currency": "INR", "receipt": "test_1"}'
+### Core Endpoints
+
+#### Create Order
+`POST /api/v1/orders`
+```json
+{
+  "amount": 50000,
+  "currency": "INR",
+  "receipt": "receipt_123"
+}
+```
+
+#### Initiate Refund
+`POST /api/v1/payments/:id/refunds`
+```json
+{
+  "amount": 1000,
+  "reason": "Customer request"
+}
+```
+
+## SDK Integration Guide
+
+The Payment Gateway provides a drop-in JavaScript SDK.
+
+1.  **Include the Script**:
+    ```html
+    <script src="http://localhost:3001/checkout.js"></script>
     ```
 
-3.  **Complete Payment**:
-    - Copy the `id` from the response (e.g., `order_...`).
-    - Open `http://localhost:3001/checkout?order_id=<ORDER_ID>`.
-    - Pay using UPI or Card.
+2.  **Initialize & Open**:
+    ```javascript
+    const checkout = new PaymentGateway({
+      key: 'YOUR_API_KEY',
+      orderId: 'ORDER_ID_FROM_BACKEND',
+      onSuccess: (data) => {
+        console.log('Payment ID:', data.id);
+      },
+      onFailure: (error) => {
+        console.error('Failed:', error);
+      }
+    });
 
-## Test Data
+    checkout.open();
+    ```
 
-Use these valid test card numbers (Luhn-compliant) for testing:
+## Webhook Integration Guide
 
-| Network | Number | Expiry | CVV |
-|:---|:---|:---|:---|
-| **Visa** | `4242 4242 4242 4242` | Future Date | Any |
-| **Mastercard** | `5555 5555 5555 4444` | Future Date | Any |
-| **Amex** | `3782 822463 10005` | Future Date | Any |
-| **RuPay** | `6080 0000 0000 0002` | Future Date | Any |
+We send HTTP POST webhooks for events like `payment.success` and `refund.processed`.
 
-> **Note**: For UPI testing, use any VPA format like `user@paytm`.
+### Verification (Security)
+Verify the `X-Webhook-Signature` header using your **Webhook Secret**.
 
+```javascript
+const crypto = require('crypto');
+const signature = req.headers['x-webhook-signature'];
+const expected = crypto
+  .createHmac('sha256', WEBHOOK_SECRET)
+  .update(JSON.stringify(req.body))
+  .digest('hex');
+
+if (signature === expected) {
+  // Verified!
+}
+```
+
+## Testing Instructions
+
+We have provided a `test-merchant` app to verify the end-to-end flow.
+
+1.  Go to [http://localhost:4000](http://localhost:4000).
+2.  Open the **Dashboard** at [http://localhost:3000](http://localhost:3000) and configure the details.
+    -   **Important**: Copy the API Key/Secret from Dashboard to `test-merchant/public/index.html` (lines 87-88) if you want to use your specific merchant account, though defaults are provided.
+    -   **Webhook URL**: Set to `http://host.docker.internal:4000/webhook` (or `http://172.17.0.1:4000/webhook` on Linux).
+3.  Click **Pay Now** on the Test Merchant page.
+4.  Complete the payment.
+5.  Check the **Dashboard Webhooks** page to see the delivery log.
+
+## Environment Variables
+
+Services are configured via `docker-compose.yml`. Key variables include:
+
+-   `DATABASE_URL`: PostgreSQL connection string.
+-   `REDIS_URL`: Redis connection string.
+-   `JWT_SECRET`: Secret for dashboard authentication.
+-   `ENCRYPTION_KEY`: Key for encrypting sensitive data.
+-   `webhook_retry_intervals`: JSON array for backoff strategy.
 
 ## Visual Walkthrough
 
@@ -90,10 +145,21 @@ Use these valid test card numbers (Luhn-compliant) for testing:
 |---------------|-------------|--------------|
 | ![Checkout](docs/Images/Checkout%20page.png) | ![UPI](docs/Images/UPI%20Payment.png) | ![Card](docs/Images/Card%20Payment.png) |
 
-| Processing | Success | Failure |
+| Processings | Success | Failure |
 |------------|---------|---------|
 | ![Processing](docs/Images/Payment%20processing.png) | ![Success](docs/Images/Payment%20Successful.png) | ![Rejection](docs/Images/Payment%20Rejection.png) |
 
+### Webhook Configuration
+| Webhook Setup | Webhook Logs |
+|---------------|--------------|
+| ![Webhook Setup](docs/Images/webhook-setup.png) | ![Webhook Configuration](docs/Images/webhook-configuration.png) |
+
+### Test Merchant
+| Merchant View | Payment Completion |
+|---------------|-------------------|
+| ![Test Merchant](docs/Images/test-merchant.png) | ![Payment Completion](docs/Images/payment-completion.png) |w3
+
 ## Video Demo
 
-[Watch the Demo Video](https://drive.google.com/file/d/1WCKzANOFWjKvwV0o2zmbUx4WLCf5NdKQ/view?usp=sharing)
+- [Watch Demo Video 1](https://drive.google.com/file/d/1WCKzANOFWjKvwV0o2zmbUx4WLCf5NdKQ/view?usp=sharing)
+- [Watch Demo Video 2](https://drive.google.com/file/d/1KGt3R6znpJncrFKLPvxIz6ui5RGwKgoJ/view?usp=sharing)

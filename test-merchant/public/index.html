@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Merchant Store</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #4338ca;
+            --secondary: #ec4899;
+            --bg-gradient: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%);
+            --card-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: var(--bg-gradient);
+            color: var(--text-main);
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 3rem 2.5rem;
+            border-radius: 24px;
+            box-shadow: var(--card-shadow);
+            text-align: center;
+            max-width: 420px;
+            width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+        }
+
+        /* Logo/Header Area */
+        .brand {
+            margin-bottom: 2.5rem;
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
+        }
+
+        /* Product Card */
+        .product-card {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #e2e8f0;
+        }
+
+        .product-info {
+            display: flex;
+            flex-direction: column;
+            text-align: left;
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: var(--text-main);
+            font-size: 1.1rem;
+        }
+
+        .product-desc {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .price-tag {
+            background: #eef2ff;
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 1.2rem;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+        }
+
+        /* Pay Button */
+        #pay-button {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 14px;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #pay-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.3);
+            filter: brightness(1.1);
+        }
+
+        #pay-button:active {
+            transform: translateY(0);
+        }
+
+        #pay-button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Success State */
+        .success-btn {
+            background: #10b981 !important;
+            pointer-events: none;
+        }
+
+        /* Terminal Logs */
+        .log-container {
+            margin-top: 2rem;
+            border-radius: 12px;
+            overflow: hidden;
+            display: none;
+            /* Hidden initially */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .log-header {
+            background: #334155;
+            color: #94a3b8;
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+            text-align: left;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+
+        .dot:nth-child(2) {
+            background: #f59e0b;
+        }
+
+        .dot:nth-child(3) {
+            background: #22c55e;
+        }
+
+        .log {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            text-align: left;
+            max-height: 150px;
+            overflow-y: auto;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            line-height: 1.6;
+        }
+
+        .log-line {
+            margin-bottom: 0.25rem;
+            opacity: 0;
+            animation: fadeIn 0.3s forwards;
+        }
+
+        .log-success {
+            color: #4ade80;
+        }
+
+        .log-error {
+            color: #f87171;
+        }
+
+        .log-info {
+            color: #60a5fa;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="brand">
+            <h1>MyShoes.com</h1>
+            <div class="subtitle">Premium Footwear Store</div>
+        </div>
+
+        <div class="product-card">
+            <div class="product-info">
+                <span class="product-name">Pro Runner X1</span>
+                <span class="product-desc">Limited Edition</span>
+            </div>
+            <div class="price-tag">₹500</div>
+        </div>
+
+        <button id="pay-button">
+            <span>Pay Now</span>
+        </button>
+
+        <div id="log-wrapper" class="log-container">
+            <div class="log-header">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <span style="margin-left: auto">Transaction Logs</span>
+            </div>
+            <div id="log-area" class="log"></div>
+        </div>
+    </div>
+
+    <!-- Include the SDK -->
+    <script src="http://localhost:3001/checkout.js"></script>
+
+    <script>
+        const API_URL = 'http://localhost:8000/api/v1';
+        const KEY = 'key_test_abc123';
+        const SECRET = 'secret_test_xyz789';
+
+        const payBtn = document.getElementById('pay-button');
+        const logArea = document.getElementById('log-area');
+        const logWrapper = document.getElementById('log-wrapper');
+
+        function log(msg, type = 'info') {
+            logWrapper.style.display = 'block';
+            const line = document.createElement('div');
+            line.className = `log-line log-${type}`;
+            line.textContent = `> ${msg}`;
+            logArea.appendChild(line);
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(msg);
+        }
+
+        payBtn.addEventListener('click', async () => {
+            payBtn.disabled = true;
+            payBtn.innerHTML = '<span class="spinner"></span> Creating Order...';
+            log('Initiating transaction...', 'info');
+
+            try {
+                // 1. Create Order via API
+                const orderRes = await fetch(`${API_URL}/orders`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Api-Key': KEY,
+                        'X-Api-Secret': SECRET
+                    },
+                    body: JSON.stringify({
+                        amount: 50000, // ₹500.00
+                        currency: 'INR',
+                        receipt: 'rcpt_' + Date.now()
+                    })
+                });
+
+                if (!orderRes.ok) {
+                    throw new Error('Failed to create order');
+                }
+
+                const orderData = await orderRes.json();
+                log(`Order Created: ${orderData.id}`, 'info');
+
+                // 2. Initialize and Open SDK
+                payBtn.textContent = 'Processing...';
+
+                const checkout = new PaymentGateway({
+                    key: KEY,
+                    orderId: orderData.id,
+                    onSuccess: (data) => {
+                        log('Payment Successful!', 'success');
+                        log(`Payment ID: ${data.id}`, 'success');
+                        payBtn.textContent = 'Payment Complete';
+                        payBtn.classList.add('success-btn');
+                    },
+                    onFailure: (error) => {
+                        log('Payment Failed', 'error');
+                        log(error.description || JSON.stringify(error), 'error');
+                        payBtn.textContent = 'Retry Payment';
+                        payBtn.disabled = false;
+                    },
+                    onClose: () => {
+                        log('Modal Closed', 'info');
+                        if (!payBtn.classList.contains('success-btn')) {
+                            payBtn.textContent = 'Pay Now';
+                            payBtn.disabled = false;
+                        }
+                    }
+                });
+
+                checkout.open();
+
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                payBtn.textContent = 'Error';
+                payBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

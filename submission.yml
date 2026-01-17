@@ -1,0 +1,28 @@
+version: "1.0"
+
+setup:
+  - "npm install --prefix backend"
+  - "npm install --prefix frontend"
+  - "npm install --prefix checkout-page"
+  - "npm install --prefix test-merchant"
+
+start:
+  - "docker-compose up -d --build"
+
+test:
+  # If there were automated unit tests, they would be listed here.
+  # Currently relying on the provided verification commands.
+  - "echo 'Running automated verification...'"
+
+verify:
+  - name: "API Health Check"
+    command: "curl -f http://localhost:8000/health || exit 1"
+  
+  - name: "Job Queue Status"
+    command: "curl -f http://localhost:8000/api/v1/test/jobs/status || exit 1"
+
+  - name: "SDK Availability"
+    command: "curl -f http://localhost:3001/checkout.js || exit 1"
+
+shutdown:
+  - "docker-compose down"
